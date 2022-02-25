@@ -52,7 +52,7 @@ public:
 		int left = 0, right = (int)nums.size() - 1;
 
 		while (left <= right) {
-			int mid = (right - left) + left;
+			int mid = (right - left) / 2 + left;
 			//因为这里先判断的大于，若lower为false,right最终总会跑到最后一个等于target的位置
 			//						若lower为true，right最终总会跑到第一个等于target的位置的前一位
 			//所以，false时,返回right+1代表返回第一个等于target的位置，
