@@ -635,6 +635,72 @@ void testWashCoffeeCup() {
 
 }
 
+//跳马问题
+// 10*9棋盘，马从起点（0，0）出发，恰好走k步到达（x,y)的不同走法有几种
+class VaultingHorse {
+public:
+
+	int way1(int x, int y, int k) {
+		return f(x, y, k);
+	}
+
+	// 马从（0，0）出发，有K步要走，并且一定要走完，最终来到（x,y)位置的方法数是多少
+	int f(int x, int y, int k) {
+		if (k == 0) {
+			//要到达的点是(0,0)且k==0,你不会动，方法数为1，如要到达的点不是（0，0）你又不能动，则无法到达最终位置，返回0 
+			return x == 0 && y == 0 ? 1 : 0;
+		}
+		//越界情况
+		if (x < 0 || x>9 || y < 0 || y>8) {
+			return 0;
+		}
+		//即步数要走，x和y也是棋盘上的位置
+		return f(x + 2, y - 1, k - 1) + f(x + 2, y + 1, k - 1) + f(x + 1, y + 2, k - 1) + f(x - 1, y + 2, k - 1) +
+			f(x - 2, y + 1, k - 1) + f(x - 2, y - 1, k - 1) + f(x - 1, y - 2, k - 1) + f(x + 1, y - 2, k - 1);
+
+	}
+
+
+	int way2(int x, int y, int k) {
+		vector<vector<vector<int>>> dp(10, vector<vector<int>>(9, vector<int>(k + 1))); //[x] [y] [k]
+		//第0层	
+		dp[0][0][0] = 1;	// dp[...][...][0]==0;
+
+		for (int level = 1; level <= k; ++level) {	//枚举层数
+			// level层,x,y
+			for (int i = 0; i < 10; ++i) {	//x的可能性
+				for (int j = 0; j < 9; ++j) {		//y的可能性 
+					dp[i][j][level] = getValue(dp, i + 2, j - 1, level - 1) +
+						getValue(dp, i + 2, j + 1, level - 1) +
+						getValue(dp, i + 1, j + 2, level - 1) +
+						getValue(dp, i - 1, j + 2, level - 1) +
+						getValue(dp, i - 2, j + 1, level - 1) +
+						getValue(dp, i - 2, j - 1, level - 1) +
+						getValue(dp, i - 1, j - 2, level - 1) +
+						getValue(dp, i + 1, j - 2, level - 1);
+				}
+			}
+		}
+
+		return dp[x][y][k];
+
+	}
+
+	int getValue(vector<vector<vector<int>>>& dp, int x, int y, int k) {
+		if (x < 0 || x>9 || y < 0 || y>8) {
+			return 0;
+		}
+		return dp[x][y][k];
+	}
+
+	void test() {
+		int x = 6, y = 8, k = 10;
+		cout << way1(x, y, k) << " " << way2(x, y, k) << endl;
+	}
+};
+
+
+
 int main()
 {
 	testRRobotWalk();
