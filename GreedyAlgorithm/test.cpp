@@ -121,7 +121,7 @@ public:
 		if (n < 1) {
 			return 0;
 		}
-		vector<int> record;	//一行放一个，record[i]表示第i个皇后放在了第record[i]列
+		vector<int> record(n);	//一行放一个，record[i]表示第i个皇后放在了第record[i]列
 		return process1(0, record, n);
 	}
 
@@ -270,5 +270,7 @@ int main()
 {
 	//test01();
 	test02();
+	NQueens n;
+	cout<<n.num1(6)<<" "<<n.num2(6);
 	return 0;
 }
