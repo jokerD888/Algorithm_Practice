@@ -133,7 +133,7 @@ public:
 		if (i == n) {
 			return 1;
 		}
-		int res;
+		int res=0;
 		for (int j = 0; j < n; ++j) {
 			//当前在i行，尝试i行所有的列
 			if (isValid(record, i, j)) {

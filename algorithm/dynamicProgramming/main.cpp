@@ -110,6 +110,7 @@ public:
 	int way1(const vector<int>& w, const vector<int>& v, const int bag) {
 		return process2(w, v, 0, bag);
 	}
+	// 含义：来到了第index位置，之前的index物品已做好决定，背包剩余rest，所能产生的最大价值
 	int process2(const vector<int>& w, const vector<int>& v, int index, int rest) {
 
 		if (rest < 0) {	//后续货物无效
@@ -168,7 +169,22 @@ public:
 			
 		}
 		return dp[N][bag];
+	}
+	// 二维数组状态转移方程，f[i,j]=max(f[i-1,j],f[i-1,j-wi]+vi)
+	// 由于对fi有影响的只有f[i-1],所以可以去掉一维,直接用f[i]来表示处理到当前物品时背包容量为i的最大价值
+	// 滚动数组：f[j]=max(f[j],f[j-wi]+vi)
 
+	int dpWay2(const vector<int>& w, const vector<int>& v, int bag) {
+		int N = w.size();
+		vector<int> dp(bag + 1);
+		for (int i = 0; i < N; ++i) {
+			for (int rest = bag; rest >= w[i]; --rest) {
+				dp[rest] = max(dp[rest], dp[rest - w[i]] + v[i]);
+			}
+		}
+
+	
+		return dp[bag];
 	}
 };
 
@@ -180,7 +196,7 @@ void testKnapsack() {
 	cout << k.way1(w, v, bag) << endl;
 	cout << k.dpWay(w, v, bag) << endl;
 	cout << k.dpWay1(w, v, bag) << endl;
-
+	cout << k.dpWay2(w, v, bag) << endl;
 }
 
 
