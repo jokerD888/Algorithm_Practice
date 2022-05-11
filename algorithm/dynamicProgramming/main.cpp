@@ -715,6 +715,499 @@ public:
 	}
 };
 
+//状态压缩的状态方程-----------------------------------------------------------------------------
+
+//464. 我能赢吗
+
+
+class Solution {
+public:
+	//法一：暴力尝试(超时）===============================================
+	//时间O(n!)	,空间O(n)
+	//1-choose 拥有的数字
+	bool canIWin0(int choose, int total) {
+		if (total == 0)
+			return true;
+		if ((choose * (choose + 1) >> 1) < total)
+			return false;
+		vector<int> arr(choose);
+		for (int i = 0; i < choose; ++i) {
+			arr[i] = i + 1;
+		}
+		// arr[i] != -1 表示arr[i]这个数字还没被拿走
+		// arr[i] == -1 表示arr[i]这个数字已经被拿走
+		return process(arr, total);
+	}
+	// 当前轮到先手拿，
+	// 先手只能选择在arr中还存在的数字，
+	// 还剩rest这么值，
+	// 返回先手会不会赢
+	bool process(vector<int>& arr, int rest) {
+		if (rest <= 0)
+			return false;
+		//先手去尝试所有的情况
+		for (int i = 0; i < arr.size(); ++i) {
+			if (arr[i] != -1) {
+				int cur = arr[i];
+				arr[i] = -1;
+				bool next = process(arr, rest - cur);
+				arr[i] = cur;	//回溯得放在这里，不能放在next的判断之后，不然一旦return之后就无法回溯了
+
+				if (!next)
+					return true;
+			}
+		}
+		return false;
+	}
+
+
+	// 法二：暴力超时==========================================================
+//时间O(n!)	,空间O(1)
+// 因choose<=20,可利用位信息可省去数组开销，相当于把一个线性结果转为了int，但实际还是线性结构
+	bool canIWin1(int choose, int total) {
+		if (total == 0) {
+			return true;
+		}
+		if ((choose * (choose + 1) >> 1) < total) {
+			return false;
+		}
+		return process1(choose, 0, total);
+	}
+
+	// 当前轮到先手拿，
+	// 先手可以拿1~choose中的任何一个数字
+	// status   i位如果为0，代表没拿，当前可以拿
+	//          i位为1，代表已经拿过了，当前不能拿
+	// 还剩rest这么值，
+	// 返回先手会不会赢
+	bool process1(int choose, int status, int rest) {
+		if (rest <= 0) {
+			return false;
+		}
+		for (int i = 1; i <= choose; i++) {
+			if (((1 << i) & status) == 0) { // i 这个数字，是此时先手的决定！
+				if (!process1(choose, (status | (1 << i)), rest - i)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+
+	//法三：缓存(状态压缩）====================================================
+	// 时间O(N*N^2)，空间（2^N)
+	// 可能对于同一组数据，不同的拿数顺序，所导致的后续操作都是相同的，为此可以使用缓存进行规避
+	bool canIWin2(int choose, int total) {
+		if (total == 0) {
+			return true;
+		}
+		if ((choose * (choose + 1) >> 1) < total) {
+			return false;
+		}
+		vector<int> dp(1 << (choose + 1));
+		// dp[status] == 1  true
+		// dp[status] == -1  false
+		// dp[status] == 0  process(status) 没算过！去算！
+		return process2(choose, 0, total, dp);
+	}
+
+	// 为什么明明status和rest是两个可变参数，却只用status来代表状态(也就是dp)
+	// 因为选了一批数字之后，得到的和一定是一样的，所以rest是由status决定的，所以rest不需要参与记忆化搜索
+	bool process2(int choose, int status, int rest, vector<int>& dp) {
+		if (dp[status] != 0) {	//缓存有
+			return dp[status] == 1 ? true : false;
+		}
+		//无缓存，正常算
+		bool ans = false;
+		if (rest > 0) {
+			for (int i = 1; i <= choose; i++) {
+				if (((1 << i) & status) == 0) {
+					if (!process2(choose, (status | (1 << i)), rest - i, dp)) {
+						ans = true;
+						break;
+					}
+				}
+			}
+		}
+		//存入缓存
+		dp[status] = ans ? 1 : -1;
+		return ans;
+	}
+};
+
+
+
+//TSP----------------------------------------------------------------------------------
+class TSP {
+public:
+	//法一：暴力=============================================================
+
+	int t1(vector<vector<int>>& matrix) {
+		int N = matrix.size(); // 0...N-1
+		// set
+		// set.get(i) == true i这座城市在集合里
+		// set.get(i) == false i这座城市不在集合里
+		vector<bool> se(N, true);
+		return func1(matrix, se, 0);
+	}
+
+	// 任何两座城市之间的距离，可以在matrix里面拿到
+	// set中表示着哪些城市的集合，
+	// start这座城一定在se里，
+	// 从start出发，要把set中所有的城市过一遍，最终回到0这座城市，最小距离是多少
+	int func1(vector<vector<int>>& matrix, vector<bool>& se, int start) {
+		int cityNum = 0;
+		for (int i = 0; i < se.size(); i++) {
+			if (se[i]) {
+				cityNum++;
+			}
+		}
+		if (cityNum == 1) {
+			return matrix[start][0];
+		}
+		// cityNum > 1  不只start这一座城
+		se[start] = false;
+		int min_path = INT_MAX;
+		for (int i = 0; i < se.size(); i++) {
+			if (se[i]) {
+				// start -> i i... -> 0
+				int cur = matrix[start][i] + func1(matrix, se, i);
+				min_path = min(min_path, cur);
+			}
+		}
+		se[start] = true;	//回溯
+		return min_path;
+	}
+
+	//法二：暴力+位运算======================================================
+	int t2(vector<vector<int>>& matrix) {
+		int N = matrix.size(); // 0...N-1
+		// 7座城 1111111
+		int allCity = (1 << N) - 1;
+		return f2(matrix, allCity, 0);
+	}
+
+	// 任何两座城市之间的距离，可以在matrix里面拿到
+	// cityStatus的位信息中表示着哪些城市的集合，
+	// start这座城一定在cityStatus第start位为1，
+	// 从start出发，要把set中所有的城市过一遍，最终回到0这座城市，最小距离是多少
+	int f2(vector<vector<int>>& matrix, int cityStatus, int start) {
+		// cityStatus == cityStatux & (~cityStaus + 1)
+		//~cityStatus + 1 把cityStatus最右侧的1拿出来
+		if (cityStatus == (cityStatus & (~cityStatus + 1))) {
+			return matrix[start][0];
+		}
+
+		// 把start位的1去掉，
+		cityStatus &= (~(1 << start));
+		int min_path = INT_MAX;
+		// 枚举所有的城市
+		for (int move = 0; move < matrix.size(); move++) {
+			if ((cityStatus & (1 << move)) != 0) {
+				int cur = matrix[start][move] + f2(matrix, cityStatus, move);
+				min_path = min(min_path, cur);
+			}
+		}
+		cityStatus |= (1 << start);	//回溯
+		return min_path;
+	}
+
+	//法三：缓存=======================================================
+	int t3(vector<vector<int>>& matrix) {
+		int N = matrix.size(); // 0...N-1
+		// 7座城 1111111
+		int allCity = (1 << N) - 1;
+		vector<vector<int>> dp(1 << N, vector<int>(N, -1));
+		return f3(matrix, allCity, 0, dp);
+	}
+
+	int f3(vector<vector<int>>& matrix, int cityStatus, int start, vector<vector<int>> dp) {
+		if (dp[cityStatus][start] != -1) {
+			return dp[cityStatus][start];
+		}
+		if (cityStatus == (cityStatus & (~cityStatus + 1))) {
+			dp[cityStatus][start] = matrix[start][0];
+		} else {
+			// 把start位的1去掉，
+			cityStatus &= (~(1 << start));
+			int min_path = INT_MAX;
+			// 枚举所有的城市
+			for (int move = 0; move < matrix.size(); move++) {
+				if ((cityStatus & (1 << move)) != 0) {
+					int cur = matrix[start][move] + f3(matrix, cityStatus, move, dp);
+					min_path = min(min_path, cur);
+				}
+			}
+			cityStatus |= (1 << start);		//回溯
+			dp[cityStatus][start] = min_path;	//存入缓存
+		}
+		return dp[cityStatus][start];
+	}
+	//法四：dp================================================
+	int t4(vector<vector<int>>& matrix) {
+		int N = matrix.size(); // 0...N-1
+		int statusNums = 1 << N;
+		vector<vector<int>> dp(statusNums, vector<int>(N));
+
+		for (int status = 0; status < statusNums; status++) {
+			for (int start = 0; start < N; start++) {
+				if ((status & (1 << start)) != 0) {
+					if (status == (status & (~status + 1))) {
+						dp[status][start] = matrix[start][0];
+					} else {
+						int min_path = INT_MAX;
+						// start 城市在status里去掉之后，的状态
+						int preStatus = status & (~(1 << start));
+						// start -> i
+						for (int i = 0; i < N; i++) {
+							if ((preStatus & (1 << i)) != 0) {
+								int cur = matrix[start][i] + dp[preStatus][i];
+								min_path = min(min_path, cur);
+							}
+						}
+						dp[status][start] = min_path;
+					}
+				}
+			}
+		}
+		return dp[statusNums - 1][0];
+	}
+
+};
+
+//问题三---------------------------------------------------------------------------
+//你有无限的1*2的砖块,要铺满M*N的区域,工不同的铺法有多少种?
+class PavingTile {
+public:
+	/*
+	 * 2*M铺地的问题非常简单，这个是解决N*M铺地的问题
+	 */
+	 //法一：暴力===================================================
+	int ways1(int N, int M) {
+		if (N < 1 || M < 1 || ((N * M) & 1) != 0) {
+			return 0;
+		}
+		if (N == 1 || M == 1) {
+			return 1;
+		}
+		vector<int> pre(M, 1); // pre代表-1行的状况
+		return process(pre, 0, N);
+	}
+
+	// pre 表示level-1行的状态
+	// level表示，正在level行做决定
+	// N 表示一共有多少行 固定的
+	// level-2行及其之上所有行，都摆满砖了
+	// level做决定，让所有区域都满，方法数返回
+	int process(vector<int>& pre, int level, int N) {
+		if (level == N) { // base case,且上一行必须被填满
+			for (int i = 0; i < pre.size(); i++) {
+				if (pre[i] == 0) {
+					return 0;
+				}
+			}
+			return 1;
+		}
+
+		// 没到终止行，可以选择在当前的level行摆瓷砖
+		vector<int> op = getOp(pre);
+		return dfs(op, 0, level, N);
+	}
+
+	// op[i] == 0 可以考虑摆砖
+	// op[i] == 1 只能竖着向上
+	int dfs(vector<int>& op, int col, int level, int N) {
+		// 在列上自由发挥，玩深度优先遍历，当col来到终止列，i行的决定做完了
+		// 轮到i+1行，做决定
+		if (col == op.size()) {
+			return process(op, level + 1, N);
+		}
+		int ans = 0;
+		// col位置不横摆
+		ans += dfs(op, col + 1, level, N); // col位置上不摆横转
+		// col位置横摆, 向右
+		if (col + 1 < op.size() && op[col] == 0 && op[col + 1] == 0) {
+			op[col] = 1;
+			op[col + 1] = 1;
+			//向右摆，col+1,自然被占用，直接从col+2开始
+			ans += dfs(op, col + 2, level, N);
+			//回溯
+			op[col] = 0;
+			op[col + 1] = 0;
+		}
+		return ans;
+	}
+
+	vector<int> getOp(vector<int>& pre) {
+		vector<int> cur(pre.size());
+		for (int i = 0; i < pre.size(); i++) {
+			cur[i] = pre[i] ^ 1;
+		}
+		return cur;
+	}
+
+	//法二：暴力+位信息=========================================================
+	// Min (N,M) 不超过 32
+	int ways2(int N, int M) {
+		if (N < 1 || M < 1 || ((N * M) & 1) != 0) {
+			return 0;
+		}
+		if (N == 1 || M == 1) {
+			return 1;
+		}
+		// 由于利用到位信息，所以N,M的最小值最为位信息，某些情况相当于N*M转为M*N
+		int maxN = max(N, M);
+		int minN = min(N, M);
+		int pre = (1 << minN) - 1;
+		return process2(pre, 0, maxN, minN);
+	}
+
+	// 上一行的状态，是pre，limit是用来对齐的，固定参数不用管
+	// 当前来到i行，一共N行，返回填满的方法数
+	int process2(int pre, int i, int N, int M) {
+		if (i == N) { // base case
+			//pre的M列是否被填满
+			return pre == ((1 << M) - 1) ? 1 : 0;
+		}
+		//根据上一行得出当前行可操作得位信息，0表可任意操作，1表不可操作
+		int op = ((~pre) & ((1 << M) - 1));
+		return dfs2(op, M - 1, i, N, M);
+	}
+
+	int dfs2(int op, int col, int level, int N, int M) {
+		if (col == -1) {	//此处得终止条件为-1对于的是二进制位的摆放顺序，低位在右边
+			return process2(op, level + 1, N, M);
+		}
+		int ans = 0;
+		ans += dfs2(op, col - 1, level, N, M);
+		//col列为0 && 还有下一列 &&  下一列也为0
+		if ((op & (1 << col)) == 0 && col - 1 >= 0 && (op & (1 << (col - 1))) == 0) {
+			//op | (3 << (col - 1))表示第将3的二进制00000011，左移col-1,即可将op的第col和col-1位置为1
+			ans += dfs2((op | (3 << (col - 1))), col - 2, level, N, M);
+		}
+		return ans;
+	}
+
+
+	//法三：缓存=====================================================================
+	// 记忆化搜索的解
+	// Min(N,M) 不超过 32
+	int ways3(int N, int M) {
+		if (N < 1 || M < 1 || ((N * M) & 1) != 0) {
+			return 0;
+		}
+		if (N == 1 || M == 1) {
+			return 1;
+		}
+		int maxN = max(N, M);
+		int minN = min(N, M);
+		int pre = (1 << minN) - 1;
+		vector<vector<int>> dp(1 << minN, vector<int>(maxN + 1, -1));
+		return process3(pre, 0, maxN, minN, dp);
+	}
+
+	int process3(int pre, int i, int N, int M, vector<vector<int>>& dp) {
+		if (dp[pre][i] != -1) {
+			return dp[pre][i];
+		}
+		int ans = 0;
+		if (i == N) {
+			ans = pre == ((1 << M) - 1) ? 1 : 0;
+		} else {
+			int op = ((~pre) & ((1 << M) - 1));
+			ans = dfs3(op, M - 1, i, N, M, dp);
+		}
+		dp[pre][i] = ans;
+		return ans;
+	}
+
+	int dfs3(int op, int col, int level, int N, int M, vector<vector<int>>& dp) {
+		if (col == -1) {
+			return process3(op, level + 1, N, M, dp);
+		}
+		int ans = 0;
+		ans += dfs3(op, col - 1, level, N, M, dp);
+		if (col > 0 && (op & (3 << (col - 1))) == 0) {
+			ans += dfs3((op | (3 << (col - 1))), col - 2, level, N, M, dp);
+		}
+		return ans;
+	}
+	// 法四：严格位置依赖的动态规划解（感兴趣了解）
+	int ways4(int N, int M) {
+		if (N < 1 || M < 1 || ((N * M) & 1) != 0) {
+			return 0;
+		}
+		if (N == 1 || M == 1) {
+			return 1;
+		}
+		int big = N > M ? N : M;
+		int small = big == N ? M : N;
+		int sn = 1 << small;
+		int limit = sn - 1;
+		vector<int> dp(sn);
+		dp[limit] = 1;
+		vector<int> cur(sn);
+		for (int level = 0; level < big; level++) {
+			for (int status = 0; status < sn; status++) {
+				if (dp[status] != 0) {
+					int op = (~status) & limit;
+					dfs4(dp[status], op, 0, small - 1, cur);
+				}
+			}
+			for (int i = 0; i < sn; i++) {
+				dp[i] = 0;
+			}
+			vector<int> tmp = dp;
+			dp = cur;
+			cur = tmp;
+		}
+		return dp[limit];
+	}
+
+	void dfs4(int way, int op, int index, int end, vector<int>& cur) {
+		if (index == end) {
+			cur[op] += way;
+		} else {
+			dfs4(way, op, index + 1, end, cur);
+			if (((3 << index) & op) == 0) { // 11 << index 可以放砖
+				dfs4(way, op | (3 << index), index + 1, end, cur);
+			}
+		}
+	}
+
+	void test() {
+		int N = 8;
+		int M = 6;
+		cout << (ways1(N, M)) << endl;
+		cout << (ways2(N, M)) << endl;
+		cout << (ways3(N, M)) << endl;
+		cout << (ways4(N, M)) << endl;
+
+		N = 10;
+		M = 10;
+		cout << "=========" << endl;;
+		cout << (ways3(N, M)) << endl;
+		cout << (ways4(N, M)) << endl;
+	}
+
+
+};
+
+void testAC() {
+	ACAutomation ac;
+	ac.insert("dhe");
+	ac.insert("he");
+	ac.insert("abcdzheks");
+	// 设置fail指针
+	ac.build();
+
+	auto contains = ac.containWords("abcdhekskdjfafhasldkflskdjhwqaeruv");
+	for (string word : contains) {
+		cout << word << endl;
+	}
+}
+
 
 
 int main()
