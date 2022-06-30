@@ -277,40 +277,7 @@
 //}
 //
 
-
-//#include <iostream>
-//using namespace std;
-//
-////vector<pair<int,int>> dir{ make_pair(0,0),make_pair(0,1),
-////										make_pair(1,1),
-////										make_pair(1,0),
-////										make_pair(0,0) };
-//pair<int, int> dir[5]{ {},{0,1},{1,1},{1,0},{0,0} };
-//pair<int,int> dfs(int ji, int n) {
-//	if (ji == 1) {
-//		return dir[n];
-//	}
-//	int len = 2 >> (ji - 1);	// 当前4个子方块的长度
-//	int index = n / (len*len);
-//	auto cur = dir[index];
-//	auto next = dfs(n % (len*len), ji - 1);
-//	return { len * cur.first + next.first,len * cur.second + next.second };
-//}
-//int main()
-//{
-//	int n;
-//	cin >> n;
-//	int level, a, b;
-//	while (n--){
-//		cin >> level >> a >> b;
-//		auto pa = dfs(level, a);
-//		auto pb = dfs(level, b);
-//		int x = pa.first - pb.first;
-//		int y = pa.second - pb.second;
-//		cout << (int)sqrt(x * x + y * y)*10 << endl;
-//	}
-//	return 0;
-//}
+// AcWing 98. 分形之城 
 
 #include <iostream>
 using namespace std;
